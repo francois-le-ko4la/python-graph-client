@@ -155,9 +155,6 @@ class GraphClient:
         self.__proxies = kwargs.get('proxies')
         self.__session = kwargs.get('session', 'session')
         self.__graphql = kwargs.get('graphql', 'graphql')
-        print(self.__session)
-        print(self.__graphql)
-        exit()
         # get info from json keyfile
         self.__read_key_file()
         if not self.__read_token_file():
