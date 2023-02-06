@@ -87,17 +87,17 @@ default.
 # Setup:
 - Download the package:
   ```shell
-  $ git clone https://github.com/francois-le-ko4la/python-graph-client.git
+  git clone https://github.com/francois-le-ko4la/python-graph-client.git
   ```
 
 - Change to the folder:
   ```shell
-  $ cd python-ping
+  cd python-graph-client
   ```
 
 - Install :
   ```shell
-  $ make install
+  make install
   ```
 
 # License

@@ -91,7 +91,7 @@ Setup:
 
     - Change to the folder:
       ```shell
-      $ cd python-ping
+      $ cd python-graph-client
       ```
 
     - Install :
