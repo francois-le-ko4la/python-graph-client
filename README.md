@@ -3,19 +3,19 @@
 
 Developing a Python script to connect to a GraphQL API has several benefits:
 
-- Ease of use: Python is a popular language with a large developer community and
-many libraries that make it easy to work with GraphQL APIs.
+- Ease of use: Python is a popular language with a large developer community
+  and many libraries that make it easy to work with GraphQL APIs.
 
-- Flexibility: GraphQL allows you to retrieve only the data you need, and Python
-makes it easy to manipulate that data in your application.
+- Flexibility: GraphQL allows you to retrieve only the data you need, and
+  Python makes it easy to manipulate that data in your application.
 
 - Scalability: Python is known for its scalability and can handle large amounts
-of data efficiently, making it a good choice for building applications that
-need to handle large amounts of data from GraphQL APIs.
+  of data efficiently, making it a good choice for building applications that
+  need to handle large amounts of data from GraphQL APIs.
 
 - Integration: Python has a large number of libraries and tools for integrating
-with other systems and technologies, making it a good choice for building
-applications that need to integrate with GraphQL APIs.
+  with other systems and technologies, making it a good choice for building
+  applications that need to integrate with GraphQL APIs.
 
 - Visibility: This package can provide all info from request/http client 
   with the --verbose mode. This is a feature used to check the communication 
@@ -40,7 +40,6 @@ or result.
 # Usage
 
 - Create/generate a Key JSON keyfile:
-
 ```python
 {
 	"client_id": "XXXXXXXXXX",

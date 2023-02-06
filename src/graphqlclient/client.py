@@ -102,12 +102,12 @@ def http_patch_log(*args: Any) -> None:
 
 def enable_logging() -> None:
     """Enable login to analyze the requests."""
-    # verbose traceback
-    sys.tracebacklimit = None
+    # verbose traceback - type ignore for mypy
+    sys.tracebacklimit = None  # type: ignore
     # enable debug
     http.client.HTTPConnection.debuglevel = 1
-    # patch http.client.print
-    http.client.print = http_patch_log
+    # patch http.client.print - type ignore for mypy
+    http.client.print = http_patch_log  # type: ignore
     # simple logging setup
     logging.basicConfig(level=logging.DEBUG)
     logger.info(Message.VERBOSE_MODE.value)
