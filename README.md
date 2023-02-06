@@ -1,4 +1,9 @@
 # Python-Graph-Client:
+[![badge](https://forthebadge.com/images/badges/made-with-python.svg)]()
+![](./doc/pycodestyle-passing.svg)
+![](./doc/pylint-passing.svg)
+![](./doc/mypy-passing.svg)
+
 ## Why?:
 
 Developing a Python script to connect to a GraphQL API has several benefits:
