@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # pylint: disable=too-many-instance-attributes, try-except-raise
-# pylint: disable=dangerous-default-value, too-few-public-methods
+# pylint: disable=too-few-public-methods
 """Python GraphQL Client."""
 from __future__ import annotations
 
