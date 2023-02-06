@@ -67,6 +67,7 @@ class Message(Enum):
     TOKEN_GET: str = "Token: Get current token in your file."
     TOKEN_DEL: str = "Token: Close your session and delete you token file."
     TOKEN_WRITE: str = "Token: write the new token."
+    TOKEN_KEEP: str = "Token: ** KEEP THE CURRENT TOKEN BY OPTION **"
     BASE_URL: str = "Base url: %s"
     VERBOSE_MODE: str = "Enable verbose mode."
     TOKEN_TIMESTAMP: str = "Current token timestamp: %s"
@@ -139,7 +140,16 @@ def request_exception(func: F) -> F:
 
 
 class GraphClient:
-    """Define the GraphQL Client."""
+    """Define the GraphQL Client.
+
+    Args:
+        json_keyfile (str): /path/to/the/keyfile
+        proxies (str): proxies
+        session (str): url to delete a session
+        manage_token (bool): True to manage the token lifecyle (default)
+                             otherwise False.
+
+    """
 
     def __init__(self, json_keyfile: str, **kwargs: Any) -> None:
         """Initialize the Class."""
@@ -155,6 +165,7 @@ class GraphClient:
         self.__proxies = kwargs.get('proxies')
         self.__session = kwargs.get('session', 'session')
         self.__graphql = kwargs.get('graphql', 'graphql')
+        self.__manage_token = kwargs.get('manage_token', True)
         # get info from json keyfile
         self.__read_key_file()
         if not self.__read_token_file():
@@ -190,11 +201,15 @@ class GraphClient:
             timestamp = os.path.getmtime(self.__token_file)
             token_timestamp = datetime.datetime.fromtimestamp(timestamp)
             logger.info(Message.TOKEN_TIMESTAMP.value, token_timestamp)
-            if (token_timestamp < datetime.datetime.today() -
+            if (self.__manage_token
+                    and token_timestamp < datetime.datetime.today() -
                     datetime.timedelta(hours=Constants.REFRESH_TOKEN.value)):
                 logger.info(Message.TOKEN_OLD.value)
                 self.__delete_token()
                 return False
+            if not self.__manage_token:
+                logger.info(Message.TOKEN_KEEP.value)
+
             logger.info(Message.TOKEN_GET.value)
             self.__token = self.__token_file.read_text(
                 Constants.ENCODING.value)

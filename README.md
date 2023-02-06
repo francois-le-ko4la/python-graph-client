@@ -67,18 +67,26 @@ from graphqlclient import GraphClient, ExitStatus, valid_python, enable_logging
         insecure=args.insecure,
         verbose=args.verbose,
         session="mysession",
-        graphql="mygraphql")
+        graphql="mygraphql",
+        manage_token=False)
 ```
 - Note:
   - base url is made with your json file : "https://XXXXXXX/api"
   - session: optional argument to define the endpoint to delete your Token. 
-    By default, session = session and url = "https://XXXXXXX/api/session"
+    By default, session = "session" and url = "https://XXXXXXX/api/session"
   - graphql: optional argument to define the endpoint to do your query.
-    By default, graphql = graphql and url = "https://XXXXXXX/api/graphql"
+    By default, graphql = "graphql" and url = "https://XXXXXXX/api/graphql"
+  - manage_token: True by default, this optional argument disable token 
+    management the token lifecycle will be manage by another process 
+    according to your GraphQL API (documentation is your best friend). This 
+    option is confirmed in the log:
 
 ```
-We provide a sample script with all info in the sample directory.
+INFO:GraphClient:Token: ** KEEP THE CURRENT TOKEN BY OPTION **
+INFO:GraphClient:Token: Get current token in your file.
 ```
+
+We provide a sample script with all info in the sample directory.
 
 # Token
 The token is store on the same folder than keyfile and we keep it for 1h by 

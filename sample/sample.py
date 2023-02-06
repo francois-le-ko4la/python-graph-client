@@ -43,7 +43,8 @@ if __name__ == "__main__":
             insecure=args.insecure,
             verbose=args.verbose,
             session="mysession",
-            graphql="mygraphql")
+            graphql="mygraphql",
+            manage_token=False)
 
         query = """query XXXX
         XXXXX
@@ -55,4 +56,3 @@ if __name__ == "__main__":
         sys.exit(ExitStatus.EX_KO)
 
     sys.exit(ExitStatus.EX_OK)
-
