@@ -1,0 +1,6 @@
+{
+	"client_id": "XXXXXXXXXX",
+	"client_secret": "XXXXXXXXXX",
+	"name": "XXXXXXXXXX",
+	"access_token_uri": "https://XXXXXXX/api/XXX"
+}

@@ -1,0 +1,73 @@
+# -*- coding: utf-8 -*-
+[project]
+name = "graphqlclient"
+version = "0.1.0"
+authors = [
+  {name = "ko4la" }
+]
+description = "Simple Graphql Client."
+license = {file = "LICENSE"}
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3 :: Only",
+    "OSI Approved :: GNU General Public License v3 (GPLv3)",
+]
+dependencies = [
+    "importlib-metadata ~= 1.0 ; python_version < '3.8'",
+    "requests"
+    ]
+
+[project.optional-dependencies]
+dev = [
+    "pycodestyle>=2.3.1",
+    "pytest>=7.2.0",
+    "pylint",
+    "mypy",
+    "pydocstyle",
+    "pytest-pylint",
+    "pytest-pycodestyle",
+    "pytest-mypy",
+    "pytest-pydocstyle",
+    "pytest-isort",
+    "types-requests",
+    "types-setuptools"]
+
+[project.urls]
+"Homepage" = "https://github.com/francois-le-ko4la/python-graph-client"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+minversion = "7.2"
+addopts = [
+    "-v",
+    "--pycodestyle",
+    "--doctest-modules",
+    "--mypy",
+    "--pydocstyle",
+    "--pylint",
+    "--isort",
+    "--strict-markers"
+]
+xfail_strict = true
+filterwarnings = [
+    "ignore:.*U.*mode is deprecated:DeprecationWarning",
+    "ignore::DeprecationWarning"]
+
+[tool.mypy]
+disallow_any_generics = true
+disallow_untyped_defs = true
+warn_redundant_casts = true
+strict_equality = true
+
