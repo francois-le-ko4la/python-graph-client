@@ -100,7 +100,6 @@ Setup:
       ```
 
 """
-
+from .__about__ import (__author__, __description__, __license__, __pkg_name__,
+                        __url__, __version__)
 from .client import ExitStatus, GraphClient, enable_logging, valid_python
-from .__about__ import (__pkg_name__, __version__, __author__, __url__,
-                        __license__, __description__)
