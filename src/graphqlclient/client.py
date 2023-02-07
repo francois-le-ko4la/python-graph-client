@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# pylint: disable=too-many-instance-attributes, try-except-raise
 # pylint: disable=too-few-public-methods
 """Python GraphQL Client."""
 from __future__ import annotations
@@ -14,10 +13,13 @@ import re
 import sys
 from enum import Enum, IntEnum, unique
 from functools import wraps
+from http.client import HTTPConnection
 from pathlib import Path
-from typing import Any, Callable, Optional, TypeVar, cast
+from typing import Any, Callable, NamedTuple, Optional, TypeVar, cast
 
 import requests
+
+from graphqlclient.__about__ import __version__
 
 # Function type
 F = TypeVar('F', bound=Callable[..., Any])
@@ -49,6 +51,8 @@ class Constants(Enum):
     TOKEN_EXT: str = "token"
     REFRESH_TOKEN: int = 1     # 1: 1 Hour
     ENCODING: str = "UTF-8"
+    LOGGING_FMT: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    LOGGING_DATE_FMT: str = "%Y-%m-%dT%H:%M:%S%z"
 
 
 @unique
@@ -66,11 +70,12 @@ class Message(Enum):
     TOKEN_OLD: str = "Token: Your file is too old -> delete token."
     TOKEN_GET: str = "Token: Get current token in your file."
     TOKEN_DEL: str = "Token: Close your session and delete you token file."
+    TOKEN_TIMESTAMP: str = "Current token timestamp: %s"
     TOKEN_WRITE: str = "Token: write the new token."
     TOKEN_KEEP: str = "Token: ** KEEP THE CURRENT TOKEN BY OPTION **"
     BASE_URL: str = "Base url: %s"
     VERBOSE_MODE: str = "Enable verbose mode."
-    TOKEN_TIMESTAMP: str = "Current token timestamp: %s"
+    VERSION: str = "graphqlclient version: %s"
 
 
 def valid_python() -> bool:
@@ -106,12 +111,16 @@ def enable_logging() -> None:
     # verbose traceback - type ignore for mypy
     sys.tracebacklimit = None  # type: ignore
     # enable debug
-    http.client.HTTPConnection.debuglevel = 1
+    HTTPConnection.debuglevel = 1
     # patch http.client.print - type ignore for mypy
     http.client.print = http_patch_log  # type: ignore
     # simple logging setup
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format=Constants.LOGGING_FMT.value,
+        datefmt=Constants.LOGGING_DATE_FMT.value)
     logger.info(Message.VERBOSE_MODE.value)
+    logger.debug(Message.VERSION.value, __version__)
 
 
 def request_exception(func: F) -> F:
@@ -128,7 +137,7 @@ def request_exception(func: F) -> F:
             logger.info("%s: new request in progress.", func.__name__)
             # run the function
             return func(*args, **kwargs)
-        # track all exception and finish with a generic "Exception"
+        # track all exceptions and finish with a generic "Exception"
         except (requests.exceptions.HTTPError,
                 requests.exceptions.ConnectionError,
                 requests.exceptions.Timeout,
@@ -137,6 +146,43 @@ def request_exception(func: F) -> F:
             logger.error(msg)
             raise
     return cast(F, func_wrapper)
+
+
+class Files(NamedTuple):
+    """Describe files used with a NamedTuple.
+
+    Note: @classmethod is used to init the objects correctly with the key_file.
+    """
+
+    key: Path
+    token: Path
+
+    @classmethod
+    def set_key_file(cls, path: str) -> Files:
+        """Define files with key file.
+
+        This function create the File object with the file's path,
+
+        Args:
+            path: The file's path.
+        Returns:
+            File
+
+        """
+        key_file = Path(os.path.abspath(path))
+        token_file = Path(
+            f"{key_file.parent}/{key_file.stem}.{Constants.TOKEN_EXT.value}")
+        return cls(key=key_file, token=token_file)
+
+
+class Options(NamedTuple):
+    """Manage optional arguments."""
+
+    verify: bool
+    proxies: Optional[dict[str, str]]
+    session: str
+    graphql: str
+    manage_token: bool
 
 
 class GraphClient:
@@ -157,15 +203,13 @@ class GraphClient:
         self.__json_key: dict[str, str] = {}
         self.__token: str = ""
         self.__headers: dict[str, str] = {}
-        self.__json_keyfile = Path(os.path.abspath(json_keyfile))
-        self.__token_file = Path(
-            f"{self.__json_keyfile.parent}/"
-            f"{self.__json_keyfile.stem}.{Constants.TOKEN_EXT.value}")
-        self.__verify = not kwargs.get('insecure', False)
-        self.__proxies = kwargs.get('proxies')
-        self.__session = kwargs.get('session', 'session')
-        self.__graphql = kwargs.get('graphql', 'graphql')
-        self.__manage_token = kwargs.get('manage_token', True)
+        self.__files: Files = Files.set_key_file(json_keyfile)
+        self.__options: Options = Options(
+            verify=not kwargs.get('insecure', False),
+            proxies=kwargs.get('proxies'),
+            session=kwargs.get('session', 'session'),
+            graphql=kwargs.get('graphql', 'graphql'),
+            manage_token=kwargs.get('manage_token', True))
         # get info from json keyfile
         self.__read_key_file()
         if not self.__read_token_file():
@@ -174,14 +218,15 @@ class GraphClient:
         self.__build_headers()
         # delete sensitive info !
         del self.__json_key
-        del self.__json_keyfile
+        del self.__files
 
     def __read_key_file(self) -> None:
         try:
-            logger.info(Message.KEYFILE_INFO.value, self.__json_keyfile)
-            self.__json_key = json.loads(self.__json_keyfile.read_text(
+            logger.info(Message.KEYFILE_INFO.value, self.__files.key)
+            self.__json_key = json.loads(self.__files.key.read_text(
                 Constants.ENCODING.value))
-        except Exception:
+        except Exception as err:
+            logger.error(err)
             raise
 
         # get base url
@@ -196,22 +241,22 @@ class GraphClient:
             self.__headers['Authorization'] = 'Bearer ' + self.__token
 
     def __read_token_file(self) -> bool:
-        if self.__token_file.exists():
-            logger.info(Message.TOKEN_FOUND.value, self.__token_file)
-            timestamp = os.path.getmtime(self.__token_file)
+        if self.__files.token.exists():
+            logger.info(Message.TOKEN_FOUND.value, self.__files.token)
+            timestamp = os.path.getmtime(self.__files.token)
             token_timestamp = datetime.datetime.fromtimestamp(timestamp)
             logger.info(Message.TOKEN_TIMESTAMP.value, token_timestamp)
-            if (self.__manage_token
+            if (self.__options.manage_token
                     and token_timestamp < datetime.datetime.today() -
                     datetime.timedelta(hours=Constants.REFRESH_TOKEN.value)):
                 logger.info(Message.TOKEN_OLD.value)
                 self.__delete_token()
                 return False
-            if not self.__manage_token:
+            if not self.__options.manage_token:
                 logger.info(Message.TOKEN_KEEP.value)
 
             logger.info(Message.TOKEN_GET.value)
-            self.__token = self.__token_file.read_text(
+            self.__token = self.__files.token.read_text(
                 Constants.ENCODING.value)
             return True
         return False
@@ -220,18 +265,17 @@ class GraphClient:
     def __delete_token(self) -> None:
         logger.info(Message.TOKEN_READ.value)
         # get current value
-        self.__token = self.__token_file.read_text(Constants.ENCODING.value)
+        self.__token = self.__files.token.read_text(Constants.ENCODING.value)
         # build header
         self.__build_headers()
         logger.info(Message.TOKEN_DEL.value)
         # delete session on GraphQL
         requests.delete(
-            f"{self.__base_url}/{self.__session}",
+            f"{self.__base_url}/{self.__options.session}",
             headers=self.__headers,
-            verify=self.__verify,
-            proxies=self.__proxies,
-            timeout=Constants.TIMEOUT.value
-            )
+            verify=self.__options.verify,
+            proxies=self.__options.proxies,
+            timeout=Constants.TIMEOUT.value)
         # clear current token in memory
         self.__token = ""
 
@@ -248,15 +292,15 @@ class GraphClient:
             session_url,
             json=payload,
             headers=self.__headers,
-            verify=self.__verify,
-            proxies=self.__proxies,
+            verify=self.__options.verify,
+            proxies=self.__options.proxies,
             timeout=Constants.TIMEOUT.value
         )
         response_json = response.json()
         self.__token = response_json['access_token']
         logger.info(Message.TOKEN_WRITE.value)
-        self.__token_file.write_text(self.__token,
-                                     encoding=Constants.ENCODING.value)
+        self.__files.token.write_text(self.__token,
+                                      encoding=Constants.ENCODING.value)
 
     @request_exception
     def query(self, my_query: str,
@@ -272,11 +316,11 @@ class GraphClient:
             body['variables'] = my_variables
 
         resp = requests.post(
-            f"{self.__base_url}/{self.__graphql}",
+            f"{self.__base_url}/{self.__options.graphql}",
             headers=self.__headers,
             json=body,
-            verify=self.__verify,
-            proxies=self.__proxies,
+            verify=self.__options.verify,
+            proxies=self.__options.proxies,
             timeout=timeout
         )
         return resp.json()

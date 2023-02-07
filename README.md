@@ -82,8 +82,8 @@ from graphqlclient import GraphClient, ExitStatus, valid_python, enable_logging
     option is confirmed in the log:
 
 ```
-INFO:GraphClient:Token: ** KEEP THE CURRENT TOKEN BY OPTION **
-INFO:GraphClient:Token: Get current token in your file.
+2023-02-07T09:39:25+0100 - GraphClient - INFO - Token: ** KEEP THE CURRENT TOKEN BY OPTION **
+2023-02-07T09:39:25+0100 - GraphClient - INFO - Token: Get current token in your file.
 ```
 
 We provide a sample script with all info in the sample directory.
@@ -107,6 +107,13 @@ default.
   ```shell
   make install
   ```
+
+# Version history
+
+- 0.1.0: first release
+- 0.1.1: add manage_token option
+- 0.1.2: remove unnecessary unlink (token lifecycle), improve logging 
+  message, attributes optimization with NamedTuple.
 
 # License
 

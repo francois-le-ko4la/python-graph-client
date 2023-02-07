@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 [project]
 name = "graphqlclient"
-version = "0.1.1"
+version = "0.1.2"
 authors = [
   {name = "ko4la" }
 ]
