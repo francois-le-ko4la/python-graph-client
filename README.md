@@ -80,13 +80,32 @@ from graphqlclient import GraphClient, ExitStatus, valid_python, enable_logging
     management the token lifecycle will be manage by another process 
     according to your GraphQL API (documentation is your best friend). This 
     option is confirmed in the log:
-
 ```
 2023-02-07T09:39:25+0100 - GraphClient - INFO - Token: ** KEEP THE CURRENT TOKEN BY OPTION **
 2023-02-07T09:39:25+0100 - GraphClient - INFO - Token: Get current token in your file.
 ```
 
-We provide a sample script with all info in the sample directory.
+- Important note:
+
+Below, we provide the full function definition to use it correctly:
+```python
+@request_exception
+def query(self, my_query: str,
+          my_variables: Optional[dict[str, Any]] = None,
+          timeout: int = Constants.TIMEOUT.value) -> dict[str, Any]:
+    """Perform raw GraphQL request.
+    
+    Args:
+        my_query(str): query
+        my_variables(dict[str, Any]): variables to use during the query
+        timeout(int): timeout (default: Constants.TIMEOUT.value)
+    
+    Return:
+        dict[str, Any]: the response in json format.
+    """
+```
+
+We provide a [sample script](./sample/sample.py) with all info.
 
 # Token
 The token is store on the same folder than keyfile and we keep it for 1h by 
@@ -114,6 +133,7 @@ default.
 - 0.1.1: add manage_token option
 - 0.1.2: remove unnecessary unlink (token lifecycle), improve logging 
   message, attributes optimization with NamedTuple.
+- 0.1.3: improve the doc and fix typing issue (variables).
 
 # License
 

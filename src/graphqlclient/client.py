@@ -304,12 +304,17 @@ class GraphClient:
 
     @request_exception
     def query(self, my_query: str,
-              my_variables: Optional[dict[str, str]] = None,
+              my_variables: Optional[dict[str, Any]] = None,
               timeout: int = Constants.TIMEOUT.value) -> dict[str, Any]:
         """Perform raw GraphQL request.
 
+        Args:
+            my_query(str): query
+            my_variables(dict[str, Any]): variables to use during the query
+            timeout(int): timeout (default: Constants.TIMEOUT.value)
+
         Return:
-            Return the raw response in json format.
+            dict[str, Any]: the response in json format.
         """
         body: dict[str, Any] = {"query": f"{my_query}"}
         if my_variables:
