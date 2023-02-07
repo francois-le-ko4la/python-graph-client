@@ -232,8 +232,6 @@ class GraphClient:
             proxies=self.__proxies,
             timeout=Constants.TIMEOUT.value
             )
-        # delete token file
-        os.unlink(self.__token_file)
         # clear current token in memory
         self.__token = ""
 
