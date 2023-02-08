@@ -72,7 +72,8 @@ class Message(Enum):
     TOKEN_DEL: str = "Token: Close your session and delete you token file."
     TOKEN_TIMESTAMP: str = "Current token timestamp: %s"
     TOKEN_WRITE: str = "Token: write the new token."
-    TOKEN_KEEP: str = "Token: ** KEEP THE CURRENT TOKEN BY OPTION **"
+    TOKEN_RENEW: str = "Token: ** GET A NEW TOKEN - REQUESTED. **"
+    TOKEN_KEEP: str = "Token: ** KEEP THE CURRENT TOKEN BY OPTION. **"
     BASE_URL: str = "Base url: %s"
     VERBOSE_MODE: str = "Enable verbose mode."
     VERSION: str = "graphqlclient version: %s"
@@ -217,8 +218,7 @@ class GraphClient:
         # build header
         self.__build_headers()
         # delete sensitive info !
-        del self.__json_key
-        del self.__files
+        self.__json_key = {}
 
     def __read_key_file(self) -> None:
         try:
@@ -301,6 +301,21 @@ class GraphClient:
         logger.info(Message.TOKEN_WRITE.value)
         self.__files.token.write_text(self.__token,
                                       encoding=Constants.ENCODING.value)
+
+    def renew_token(self) -> None:
+        """Renew the token.
+
+        This function force token generation.
+
+        Returns:
+            None
+        """
+        logger.info(Message.TOKEN_RENEW.value)
+        self.__read_key_file()
+        self.__delete_token()
+        self.__get_access_token_keyfile()
+        # delete sensitive info !
+        self.__json_key = {}
 
     @request_exception
     def query(self, my_query: str,

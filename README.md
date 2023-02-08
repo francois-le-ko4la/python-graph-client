@@ -105,6 +105,36 @@ def query(self, my_query: str,
     """
 ```
 
+You can force the token renew in your script using renew_token function.
+Use case: multiple scripts use the same token and you want a simple script 
+to renew the token.
+All scripts will use the option "manage_token=False" during GraphClient
+instantiation and one script will be called to force the token renew:
+```python
+if __name__ == "__main__":
+    # manage args
+    args = get_argparser().parse_args()
+
+    if args.verbose:
+        enable_logging()
+
+    if not valid_python():
+        sys.exit(ExitStatus.EX_CONFIG)
+
+    try:
+        my_obj: GraphClient = GraphClient(
+            json_keyfile=args.json_keyfile,
+            insecure=args.insecure,
+            verbose=args.verbose)
+
+        my_obj.renew_token()
+
+    except Exception:
+        sys.exit(ExitStatus.EX_KO)
+
+    sys.exit(ExitStatus.EX_OK)
+```
+
 We provide a [sample script](./sample/sample.py) with all info.
 
 # Token
@@ -134,6 +164,7 @@ default.
 - 0.1.2: remove unnecessary unlink (token lifecycle), improve logging 
   message, attributes optimization with NamedTuple.
 - 0.1.3: improve the doc and fix typing issue (variables).
+- 0.1.4: add a function (renew_token) to create a new token (force mode).
 
 # License
 
