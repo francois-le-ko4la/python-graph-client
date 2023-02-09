@@ -124,7 +124,8 @@ if __name__ == "__main__":
         my_obj: GraphClient = GraphClient(
             json_keyfile=args.json_keyfile,
             insecure=args.insecure,
-            verbose=args.verbose)
+            verbose=args.verbose,
+	    manage_token=False)
 
         my_obj.renew_token()
 
