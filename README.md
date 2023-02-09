@@ -81,8 +81,7 @@ from graphqlclient import GraphClient, ExitStatus, valid_python, enable_logging
     according to your GraphQL API (documentation is your best friend). This 
     option is confirmed in the log:
 ```
-2023-02-07T09:39:25+0100 - GraphClient - INFO - Token: ** KEEP THE CURRENT TOKEN BY OPTION **
-2023-02-07T09:39:25+0100 - GraphClient - INFO - Token: Get current token in your file.
+2023-02-07T09:39:25+0100 - GraphClient - INFO - Token: ** KEEP THE CURRENT ACCESS TOKEN BY OPT. **
 ```
 
 - Important note:
@@ -159,12 +158,13 @@ default.
 
 # Version history
 
-- 0.1.0: first release
-- 0.1.1: add manage_token option
+- 0.1.0: first release.
+- 0.1.1: add manage_token option.
 - 0.1.2: remove unnecessary unlink (token lifecycle), improve logging 
   message, attributes optimization with NamedTuple.
 - 0.1.3: improve the doc and fix typing issue (variables).
 - 0.1.4: add a function (renew_token) to create a new token (force mode).
+- 0.1.5: improve logging, simplify the code, clean constants.
 
 # License
 

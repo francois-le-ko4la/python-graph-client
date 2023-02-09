@@ -49,7 +49,7 @@ class Constants(Enum):
     CHK_PYT_MIN: tuple[int, int, int] = (3, 7, 0)
     TIMEOUT: int = 30
     TOKEN_EXT: str = "token"
-    REFRESH_TOKEN: int = 1     # 1: 1 Hour
+    TOKEN_LIFESPAN: int = 1     # 1: 1 Hour
     ENCODING: str = "UTF-8"
     LOGGING_FMT: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     LOGGING_DATE_FMT: str = "%Y-%m-%dT%H:%M:%S%z"
@@ -59,21 +59,20 @@ class Constants(Enum):
 class Message(Enum):
     """Define messages."""
 
-    ARGS: str = "Arguments: %s"
     PYT_INF: str = "Python version is supported: %s"
     PYT_ERR: str = "Python version is not supported: %s"
-    PYT_DEB: str = "Python: %s"
+    PYT_DEB: str = "Python environment: %s"
+    LOG_FUNC: str = "%s(): %s"
     KEYFILE_INFO: str = "Key file: %s"
-    KEYFILE_ERROR: str = "Key file: %s %s"
     TOKEN_FOUND: str = "Token file: %s"
-    TOKEN_READ: str = "Token: Read the token."
-    TOKEN_OLD: str = "Token: Your file is too old -> delete token."
-    TOKEN_GET: str = "Token: Get current token in your file."
-    TOKEN_DEL: str = "Token: Close your session and delete you token file."
-    TOKEN_TIMESTAMP: str = "Current token timestamp: %s"
-    TOKEN_WRITE: str = "Token: write the new token."
-    TOKEN_RENEW: str = "Token: ** GET A NEW TOKEN - REQUESTED. **"
-    TOKEN_KEEP: str = "Token: ** KEEP THE CURRENT TOKEN BY OPTION. **"
+    TOKEN_GET: str = "Token: Use the current access token."
+    TOKEN_DEL: str = "Token: Close your session and delete the token file."
+    TOKEN_TIMESTAMP: str = "Current access token timestamp: %s"
+    TOKEN_WRITE: str = "Token: Write the new access token."
+    TOKEN_RENEW: str = "Token: ** GET A NEW ACCESS TOKEN - REQUESTED. **"
+    TOKEN_KEEP_OPT: str = "Token: ** KEEP THE CURRENT ACCESS TOKEN BY OPT. **"
+    TOKEN_KEEP: str = "Token: Keep the current access token."
+    TOKEN_OLD: str = "Token: Refresh the access token is required."
     BASE_URL: str = "Base url: %s"
     VERBOSE_MODE: str = "Enable verbose mode."
     VERSION: str = "graphqlclient version: %s"
@@ -98,7 +97,7 @@ def valid_python() -> bool:
         logger.debug(sys.version)
         return False
     logger.info(Message.PYT_INF.value, current_version_txt)
-    logger.debug(sys.version)
+    logger.debug(Message.PYT_DEB.value, sys.version)
     return True
 
 
@@ -124,7 +123,7 @@ def enable_logging() -> None:
     logger.debug(Message.VERSION.value, __version__)
 
 
-def request_exception(func: F) -> F:
+def check_exception(func: F) -> F:
     """Wrap the passed in function and logs exceptions.
 
     We have 3 function with request therefore we want an homogeneous exception
@@ -134,16 +133,16 @@ def request_exception(func: F) -> F:
     @wraps(func)
     def func_wrapper(*args: Any, **kwargs: Any) -> Any:
         try:
-            # give info
-            logger.info("%s: new request in progress.", func.__name__)
-            # run the function
+            # track func name and run it
+            info = "" if func.__doc__ is None else func.__doc__.split("\n")[0]
+            logger.debug(Message.LOG_FUNC.value, func.__name__, info)
             return func(*args, **kwargs)
         # track all exceptions and finish with a generic "Exception"
         except (requests.exceptions.HTTPError,
                 requests.exceptions.ConnectionError,
                 requests.exceptions.Timeout,
                 requests.exceptions.RequestException, Exception) as err:
-            msg = f"{func.__name__} - {type(err).__name__} raised: {err}"
+            msg = f"{func.__name__}(): {type(err).__name__} - raised: {err}"
             logger.error(msg)
             raise
     return cast(F, func_wrapper)
@@ -198,112 +197,122 @@ class GraphClient:
 
     """
 
+    __base_url: str = ""
+    __json_key: dict[str, str] = {}
+    __token: str = ""
+    __files: Files
+    __options: Options
+
     def __init__(self, json_keyfile: str, **kwargs: Any) -> None:
         """Initialize the Class."""
-        self.__base_url: str = ""
-        self.__json_key: dict[str, str] = {}
-        self.__token: str = ""
-        self.__headers: dict[str, str] = {}
-        self.__files: Files = Files.set_key_file(json_keyfile)
-        self.__options: Options = Options(
+        self.__files = Files.set_key_file(json_keyfile)
+        self.__options = Options(
             verify=not kwargs.get('insecure', False),
             proxies=kwargs.get('proxies'),
             session=kwargs.get('session', 'session'),
             graphql=kwargs.get('graphql', 'graphql'),
             manage_token=kwargs.get('manage_token', True))
-        # get info from json keyfile
-        self.__read_key_file()
-        if not self.__read_token_file():
-            self.__get_access_token_keyfile()
-        # build header
-        self.__build_headers()
-        # delete sensitive info !
-        self.__json_key = {}
+        self.__manage_session()
 
+    @check_exception
     def __read_key_file(self) -> None:
-        try:
-            logger.info(Message.KEYFILE_INFO.value, self.__files.key)
-            self.__json_key = json.loads(self.__files.key.read_text(
-                Constants.ENCODING.value))
-        except Exception as err:
-            logger.error(err)
-            raise
-
+        """Read Key File and update attributes."""
+        # log the filename used
+        logger.info(Message.KEYFILE_INFO.value, self.__files.key)
+        # read the json key file
+        self.__json_key = json.loads(self.__files.key.read_text(
+            Constants.ENCODING.value))
         # get base url
         self.__base_url = re.sub(
             r"/[^/]*$", "", self.__json_key['access_token_uri'])
+        # log the base url
         logger.info(Message.BASE_URL.value, self.__base_url)
 
-    def __build_headers(self) -> None:
-        self.__headers['Content-Type'] = 'application/json'
-        self.__headers['Accept'] = 'application/json'
-        if self.__token:
-            self.__headers['Authorization'] = 'Bearer ' + self.__token
+    @check_exception
+    def __get_headers(self) -> dict[str, str]:
+        """Get the current header."""
+        return {'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'Authorization': f"Bearer {self.__token}"} if self.__token \
+            else {'Content-Type': 'application/json',
+                  'Accept': 'application/json'}
 
+    @check_exception
     def __read_token_file(self) -> bool:
-        if self.__files.token.exists():
-            logger.info(Message.TOKEN_FOUND.value, self.__files.token)
-            timestamp = os.path.getmtime(self.__files.token)
-            token_timestamp = datetime.datetime.fromtimestamp(timestamp)
-            logger.info(Message.TOKEN_TIMESTAMP.value, token_timestamp)
-            if (self.__options.manage_token
-                    and token_timestamp < datetime.datetime.today() -
-                    datetime.timedelta(hours=Constants.REFRESH_TOKEN.value)):
-                logger.info(Message.TOKEN_OLD.value)
-                self.__delete_token()
-                return False
-            if not self.__options.manage_token:
-                logger.info(Message.TOKEN_KEEP.value)
-
-            logger.info(Message.TOKEN_GET.value)
-            self.__token = self.__files.token.read_text(
-                Constants.ENCODING.value)
-            return True
-        return False
-
-    @request_exception
-    def __delete_token(self) -> None:
-        logger.info(Message.TOKEN_READ.value)
-        # get current value
+        """Read the current token file and manage the token lifespan."""
+        if not self.__files.token.exists():
+            return False
+        # log the token filename and read it.
+        logger.info(Message.TOKEN_FOUND.value, self.__files.token)
         self.__token = self.__files.token.read_text(Constants.ENCODING.value)
-        # build header
-        self.__build_headers()
-        logger.info(Message.TOKEN_DEL.value)
-        # delete session on GraphQL
+        # get the timestamp
+        timestamp = os.path.getmtime(self.__files.token)
+        token_timestamp = datetime.datetime.fromtimestamp(timestamp)
+        logger.info(Message.TOKEN_TIMESTAMP.value, token_timestamp)
+        # if the token lifecycle is managed by this instance and the token
+        # is too old then delete it and return False
+        if (self.__options.manage_token
+                and token_timestamp < datetime.datetime.today() -
+                datetime.timedelta(hours=Constants.TOKEN_LIFESPAN.value)):
+            logger.info(Message.TOKEN_OLD.value)
+            self.__delete_token()
+            return False
+        if self.__options.manage_token:
+            # keep the token according to the timestamp:
+            logger.info(Message.TOKEN_KEEP.value)
+        else:
+            # keep the token - manage_token=False
+            logger.info(Message.TOKEN_KEEP_OPT.value)
+        return True
+
+    @check_exception
+    def __delete_token(self) -> None:
+        """Close the current GraphQL session."""
         requests.delete(
             f"{self.__base_url}/{self.__options.session}",
-            headers=self.__headers,
+            headers=self.__get_headers(),
             verify=self.__options.verify,
             proxies=self.__options.proxies,
             timeout=Constants.TIMEOUT.value)
         # clear current token in memory
         self.__token = ""
 
-    @request_exception
+    @check_exception
     def __get_access_token_keyfile(self) -> None:
-        self.__build_headers()
+        """Generate an access token using key file."""
         session_url = self.__json_key['access_token_uri']
         payload = {
             "client_id": self.__json_key['client_id'],
             "client_secret": self.__json_key['client_secret'],
-            "name": self.__json_key['name']
-        }
+            "name": self.__json_key['name']}
+
         response = requests.post(
             session_url,
             json=payload,
-            headers=self.__headers,
+            headers=self.__get_headers(),
             verify=self.__options.verify,
             proxies=self.__options.proxies,
-            timeout=Constants.TIMEOUT.value
-        )
+            timeout=Constants.TIMEOUT.value)
+
         response_json = response.json()
         self.__token = response_json['access_token']
         logger.info(Message.TOKEN_WRITE.value)
         self.__files.token.write_text(self.__token,
                                       encoding=Constants.ENCODING.value)
 
+    @check_exception
+    def __manage_session(self) -> None:
+        """Manage the GraphQL session."""
+        # get info from the json keyfile
+        self.__read_key_file()
+        if not self.__read_token_file():
+            self.__get_access_token_keyfile()
+        # delete sensitive info !
+        self.__json_key = {}
+
+    @check_exception
     def renew_token(self) -> None:
-        """Renew the token.
+        """Renew the access token with the keyfile (force mode).
 
         This function force token generation.
 
@@ -317,11 +326,11 @@ class GraphClient:
         # delete sensitive info !
         self.__json_key = {}
 
-    @request_exception
+    @check_exception
     def query(self, my_query: str,
               my_variables: Optional[dict[str, Any]] = None,
               timeout: int = Constants.TIMEOUT.value) -> dict[str, Any]:
-        """Perform raw GraphQL request.
+        """Perform a GraphQL request.
 
         Args:
             my_query(str): query
@@ -337,10 +346,10 @@ class GraphClient:
 
         resp = requests.post(
             f"{self.__base_url}/{self.__options.graphql}",
-            headers=self.__headers,
+            headers=self.__get_headers(),
             json=body,
             verify=self.__options.verify,
             proxies=self.__options.proxies,
-            timeout=timeout
-        )
+            timeout=timeout)
+
         return resp.json()

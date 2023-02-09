@@ -100,8 +100,7 @@ Setup:
       ```
 
 """
-from graphqlclient.__about__ import (__author__, __description__,
-                                     __license__, __pkg_name__, __url__,
-                                     __version__)
+from graphqlclient.__about__ import (__author__, __description__, __license__,
+                                     __pkg_name__, __url__, __version__)
 from graphqlclient.client import (ExitStatus, GraphClient, enable_logging,
                                   valid_python)
