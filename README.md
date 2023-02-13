@@ -6,7 +6,7 @@
 
 ## Why?:
 
-Developing a Python script to connect to a GraphQL API has several benefits:
+Developing a Python package to connect to a GraphQL API has several benefits:
 
 - Ease of use: Python is a popular language with a large developer community
   and many libraries that make it easy to work with GraphQL APIs.
@@ -23,10 +23,10 @@ Developing a Python script to connect to a GraphQL API has several benefits:
   applications that need to integrate with GraphQL APIs.
 
 - Visibility: This package can provide all info from request/http client 
-  with the --verbose mode. This is a feature used to check the communication 
+  with the verbose mode. This is a feature used to check the communication 
   with the API target.
 
-Overall, developing a Python script to connect to a GraphQL API can simplify
+Overall, developing a Python package to connect to a GraphQL API can simplify
 the process of retrieving and manipulating data from the API, and make it
 easier to build powerful and scalable applications.
 
@@ -43,7 +43,27 @@ without limitation, any implied warranties of fitness for a particular purpose
 or result.
 
 # Usage
+## Open Access
+- integrate the library:
+```python
+from graphqlclient import GraphClient, ExitStatus
+```
 
+- Open access GraphQL:
+```python
+client = GraphClient(base_url="https://fruits-api.netlify.app",
+                     verbose=True)
+```
+
+Note:
+  - base_url: we don't use a JSON Keyfile to define the base url, therefore we 
+    push this value directly.
+  - graphql: optional argument to define the endpoint to do your query.
+    By default, graphql = "graphql" and url = "https://XXXXXXX/api/graphql"
+  - verbose: True/False to enable/disable the verbose mode
+
+
+## Authentication (client_id, client_secret)
 - Create/generate a Key JSON keyfile:
 ```python
 {
@@ -57,18 +77,18 @@ Note: access_token_uri is the URL to generate the token.
 
 - integrate the library:
 ```python
-from graphqlclient import GraphClient, ExitStatus, valid_python, enable_logging
+from graphqlclient import GraphClient, ExitStatus
 ```
 
 - Connect to the API:
 ```python
-    my_obj = GraphClient(
-        json_keyfile=args.json_keyfile,
-        insecure=args.insecure,
-        verbose=args.verbose,
-        session="mysession",
-        graphql="mygraphql",
-        manage_token=False)
+my_obj = GraphClient(
+    json_keyfile=args.json_keyfile,
+    insecure=args.insecure,
+    verbose=args.verbose,
+    session="mysession",
+    graphql="mygraphql",
+    manage_token=False)
 ```
 - Note:
   - base url is made with your json file : "https://XXXXXXX/api"
@@ -76,15 +96,48 @@ from graphqlclient import GraphClient, ExitStatus, valid_python, enable_logging
     By default, session = "session" and url = "https://XXXXXXX/api/session"
   - graphql: optional argument to define the endpoint to do your query.
     By default, graphql = "graphql" and url = "https://XXXXXXX/api/graphql"
-  - manage_token: True by default, this optional argument disable token 
-    management the token lifecycle will be manage by another process 
+  - verbose: True/False to enable/disable the verbose mode
+  - insecure: True/False to verify SSL certificate
+  - manage_token: True by default, if manage_token is False, then it disable 
+    token management and the token lifecycle will be manage by another process 
     according to your GraphQL API (documentation is your best friend). This 
     option is confirmed in the log:
 ```
 2023-02-07T09:39:25+0100 - GraphClient - INFO - Token: ** KEEP THE CURRENT ACCESS TOKEN BY OPT. **
 ```
 
-- Important note:
+# Token
+## Description
+The token is store on the same folder than keyfile, and we keep it for 1h by 
+default.
+
+## Token renew
+We can force the token renew in the script using renew_token() function.
+Use case: multiple scripts use the same token, and you want a simple script 
+to renew the token.
+All scripts will use the option "manage_token=False" during GraphClient
+instantiation and one script will be called to force the token renew:
+```python
+if __name__ == "__main__":
+    # manage args
+    args = get_argparser().parse_args()
+
+    try:
+        my_obj = GraphClient(
+            json_keyfile=args.json_keyfile,
+            insecure=args.insecure,
+            verbose=args.verbose,
+            manage_token=False)
+
+        my_obj.renew_token()
+
+    except Exception:
+        sys.exit(ExitStatus.EX_KO)
+
+    sys.exit(ExitStatus.EX_OK)
+```
+
+## Query
 
 Below, we provide the full function definition to use it correctly:
 ```python
@@ -104,44 +157,14 @@ def query(self, my_query: str,
     """
 ```
 
-You can force the token renew in your script using renew_token function.
-Use case: multiple scripts use the same token and you want a simple script 
-to renew the token.
-All scripts will use the option "manage_token=False" during GraphClient
-instantiation and one script will be called to force the token renew:
-```python
-if __name__ == "__main__":
-    # manage args
-    args = get_argparser().parse_args()
-
-    if args.verbose:
-        enable_logging()
-
-    if not valid_python():
-        sys.exit(ExitStatus.EX_CONFIG)
-
-    try:
-        my_obj: GraphClient = GraphClient(
-            json_keyfile=args.json_keyfile,
-            insecure=args.insecure,
-            verbose=args.verbose,
-	    manage_token=False)
-
-        my_obj.renew_token()
-
-    except Exception:
-        sys.exit(ExitStatus.EX_KO)
-
-    sys.exit(ExitStatus.EX_OK)
-```
-
-We provide a [sample script](./sample/sample.py) with all info.
-
-# Token
-The token is store on the same folder than keyfile and we keep it for 1h by 
-default.
+# Sample
+We provide a sample folder with all info.
 
 # Setup:
+## Compatibility
+Python 3.7+
+
+## Install
 - Download the package:
   ```shell
   git clone https://github.com/francois-le-ko4la/python-graph-client.git

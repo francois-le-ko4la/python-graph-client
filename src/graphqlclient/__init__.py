@@ -41,47 +41,7 @@ Why?:
     purpose or result.
 
 Usage:
-
-    - Create/generate a Key JSON keyfile:
-    ```python
-    {
-        "client_id": "XXXXXXXXXX",
-        "client_secret": "XXXXXXXXXX",
-        "name": "XXXXXXXXXX",
-        "access_token_uri": "https://XXXXXXX/api/XXX"
-    }
-    ```
-    Note: access_token_uri is the URL to generate the token.
-
-    - integrate the library:
-    ```python
-    from graphqlclient import GraphClient, ExitStatus, valid_python, \
-        enable_logging
-    ```
-
-    - Connect to the API:
-    ```python
-        my_obj = GraphClient(
-            json_keyfile=args.json_keyfile,
-            insecure=args.insecure,
-            verbose=args.verbose,
-            session="mysession",
-            graphql="mygraphql")
-    ```
-    - Note:
-      - base url is made with your json file : "https://XXXXXXX/api"
-      - session: optional argument to define the endpoint to delete your Token.
-        By default, session = session and url = "https://XXXXXXX/api/session"
-      - graphql: optional argument to define the endpoint to do your query.
-        By default, graphql = graphql and url = "https://XXXXXXX/api/graphql"
-
-    ```
-    We provide a sample script with all info in the sample directory.
-    ```
-
-Token:
-    The token is store on the same folder than keyfile and we keep it for 1h by
-    default.
+    README.md
 
 Setup:
     - Download the package:
