@@ -4,7 +4,7 @@
 import argparse
 import sys
 import json
-from graphqlclient import GraphClient, ExitStatus, valid_python, enable_logging
+from graphqlclient import GraphClient, ExitStatus
 
 
 def get_argparser() -> argparse.ArgumentParser:
@@ -31,14 +31,8 @@ if __name__ == "__main__":
     # manage args
     args = get_argparser().parse_args()
 
-    if args.verbose:
-        enable_logging()
-
-    if not valid_python():
-        sys.exit(ExitStatus.EX_CONFIG)
-
     try:
-        my_obj: GraphClient = GraphClient(
+        client: GraphClient = GraphClient(
             json_keyfile=args.json_keyfile,
             insecure=args.insecure,
             verbose=args.verbose,
@@ -50,7 +44,7 @@ if __name__ == "__main__":
         XXXXX
         """
 
-        print(json.dumps(my_obj.query(my_query=query), indent=4))
+        print(json.dumps(client.query(my_query=query), indent=4))
 
     except Exception:
         sys.exit(ExitStatus.EX_KO)

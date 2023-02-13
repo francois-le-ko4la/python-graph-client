@@ -59,9 +59,6 @@ class Constants(Enum):
 class Message(Enum):
     """Define messages."""
 
-    PYT_INF: str = "Python version is supported: %s"
-    PYT_ERR: str = "Python version is not supported: %s"
-    PYT_DEB: str = "Python environment: %s"
     LOG_FUNC: str = "%s(): %s"
     KEYFILE_INFO: str = "Key file: %s"
     TOKEN_FOUND: str = "Token file: %s"
@@ -76,29 +73,7 @@ class Message(Enum):
     BASE_URL: str = "Base url: %s"
     VERBOSE_MODE: str = "Enable verbose mode."
     VERSION: str = "graphqlclient version: %s"
-
-
-def valid_python() -> bool:
-    """Check python.
-
-    This function check Python version, log the result and return a status
-    True/False.
-
-    Returns:
-        True if successful, False otherwise.
-
-    """
-    # Python __version__
-    current_version: tuple[int, int, int] = sys.version_info[:3]
-    current_version_txt: str = ".".join(map(str, current_version))
-
-    if current_version < Constants.CHK_PYT_MIN.value:
-        logger.error(Message.PYT_ERR.value, current_version_txt)
-        logger.debug(sys.version)
-        return False
-    logger.info(Message.PYT_INF.value, current_version_txt)
-    logger.debug(Message.PYT_DEB.value, sys.version)
-    return True
+    PYT_VERSION: str = "Python environment: %s"
 
 
 def http_patch_log(*args: Any) -> None:
@@ -120,6 +95,7 @@ def enable_logging() -> None:
         format=Constants.LOGGING_FMT.value,
         datefmt=Constants.LOGGING_DATE_FMT.value)
     logger.info(Message.VERBOSE_MODE.value)
+    logger.debug(Message.PYT_VERSION.value, sys.version)
     logger.debug(Message.VERSION.value, __version__)
 
 
@@ -149,7 +125,7 @@ def check_exception(func: F) -> F:
 
 
 class Files(NamedTuple):
-    """Describe files used with a NamedTuple.
+    """Describe files.
 
     Note: @classmethod is used to init the objects correctly with the key_file.
     """
@@ -183,6 +159,7 @@ class Options(NamedTuple):
     session: str
     graphql: str
     manage_token: bool
+    verbose: bool
 
 
 class GraphClient:
@@ -190,10 +167,21 @@ class GraphClient:
 
     Args:
         json_keyfile (str): /path/to/the/keyfile
-        proxies (str): proxies
-        session (str): url to delete a session
-        manage_token (bool): True to manage the token lifecyle (default)
-                             otherwise False.
+        **kwargs (Any):
+            - insecure (bool): deactivate SSL check
+            - proxies (Optional[dict[str, str]]): proxies
+            - session (str): endpoint to manage session
+            - graphql (str): endpoint to push our query
+            - manage_token (bool): Enable/disable token refresh
+            - base_url (str): init the base url (anonymous mode)
+            - verbose (bool): verbose mode
+
+    Examples:
+        Anonymous connection to "https://fruits-api.netlify.app":
+        >>> client = GraphClient(base_url="https://fruits-api.netlify.app")
+        >>> my_query = "query oneFruit {fruit(id: 1) {fruit_name}}"
+        >>> client.query(my_query=my_query)
+        {'data': {'fruit': {'fruit_name': 'Manzana'}}}
 
     """
 
@@ -203,16 +191,27 @@ class GraphClient:
     __files: Files
     __options: Options
 
-    def __init__(self, json_keyfile: str, **kwargs: Any) -> None:
-        """Initialize the Class."""
-        self.__files = Files.set_key_file(json_keyfile)
+    def __init__(self, json_keyfile: Optional[str] = None, **kwargs: Any) \
+            -> None:
+        """Initialize."""
         self.__options = Options(
             verify=not kwargs.get('insecure', False),
             proxies=kwargs.get('proxies'),
             session=kwargs.get('session', 'session'),
             graphql=kwargs.get('graphql', 'graphql'),
-            manage_token=kwargs.get('manage_token', True))
-        self.__manage_session()
+            manage_token=kwargs.get('manage_token', bool(json_keyfile)),
+            verbose=kwargs.get('verbose', False))
+
+        if self.__options.verbose:
+            enable_logging()
+
+        if json_keyfile:
+            # Keyfile -> authentication & token management
+            self.__files = Files.set_key_file(json_keyfile)
+            self.__manage_session()
+        else:
+            # anonymous -> get base_url option
+            self.__base_url = kwargs.get('base_url', "")
 
     @check_exception
     def __read_key_file(self) -> None:
@@ -268,12 +267,13 @@ class GraphClient:
     @check_exception
     def __delete_token(self) -> None:
         """Close the current GraphQL session."""
-        requests.delete(
+        response = requests.delete(
             f"{self.__base_url}/{self.__options.session}",
             headers=self.__get_headers(),
             verify=self.__options.verify,
             proxies=self.__options.proxies,
             timeout=Constants.TIMEOUT.value)
+        response.raise_for_status()
         # clear current token in memory
         self.__token = ""
 
@@ -294,6 +294,8 @@ class GraphClient:
             proxies=self.__options.proxies,
             timeout=Constants.TIMEOUT.value)
 
+        response.raise_for_status()
+
         response_json = response.json()
         self.__token = response_json['access_token']
         logger.info(Message.TOKEN_WRITE.value)
@@ -307,7 +309,7 @@ class GraphClient:
         self.__read_key_file()
         if not self.__read_token_file():
             self.__get_access_token_keyfile()
-        # delete sensitive info !
+        # delete sensitive info in memory !
         self.__json_key = {}
 
     @check_exception
@@ -344,7 +346,7 @@ class GraphClient:
         if my_variables:
             body['variables'] = my_variables
 
-        resp = requests.post(
+        response = requests.post(
             f"{self.__base_url}/{self.__options.graphql}",
             headers=self.__get_headers(),
             json=body,
@@ -352,4 +354,5 @@ class GraphClient:
             proxies=self.__options.proxies,
             timeout=timeout)
 
-        return resp.json()
+        response.raise_for_status()
+        return response.json()

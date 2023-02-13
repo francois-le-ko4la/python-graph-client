@@ -166,6 +166,8 @@ default.
 - 0.1.3: improve the doc and fix typing issue (variables).
 - 0.1.4: add a function (renew_token) to create a new token (force mode).
 - 0.1.5: improve logging, simplify the code, clean constants.
+- 0.1.6: add anonymous connection, add raise_for_status() to raise a message 
+  if the query status >= 400.
 
 # License
 
