@@ -56,15 +56,18 @@ client = GraphClient(base_url="https://fruits-api.netlify.app",
 ```
 
 Note:
-  - base_url: we don't use a JSON Keyfile to define the base url, therefore we 
-    push this value directly.
-  - graphql: optional argument to define the endpoint to do your query.
+  - `base_url`: we don't use a JSON Keyfile to define the base url, therefore we 
+    push the base_url value.
+  - `graphql`: optional argument to define the endpoint to do your query.
     By default, graphql = "graphql" and url = "https://XXXXXXX/api/graphql"
-  - verbose: True/False to enable/disable the verbose mode
+    Here, the GraphQL url is https://fruits-api.netlify.app/graphql
+  - `verbose`: True/False to enable/disable the verbose mode
 
 
 ## Authentication (client_id, client_secret)
 - Create/generate a Key JSON keyfile:
+
+`keyfile.json`
 ```python
 {
 	"client_id": "XXXXXXXXXX",
@@ -83,26 +86,26 @@ from graphqlclient import GraphClient, ExitStatus
 - Connect to the API:
 ```python
 my_obj = GraphClient(
-    json_keyfile=args.json_keyfile,
-    insecure=args.insecure,
-    verbose=args.verbose,
-    session="mysession",
-    graphql="mygraphql",
-    manage_token=False)
+    json_keyfile=args.json_keyfile,  # json keyfile (credentials)
+    insecure=args.insecure,          # True/False: If False check SSL certificat
+    verbose=args.verbose,            # True/False: If True, show Request debug messages
+    session="mysession",             # session url: https://XXXXXXX/api/<session>
+    graphql="mygraphql",             # GraphQL url: https://XXXXXXX/api/<graphql>
+    manage_token=False)              # True/False: If False, disable automatic token management
 ```
 - Note:
-  - base url is made with your json file : "https://XXXXXXX/api"
-  - session: optional argument to define the endpoint to delete your Token. 
+  - `base url`: made with your json file -> "https://XXXXXXX/api"
+  - `session`: optional argument to define the endpoint to delete your Token. 
     By default, session = "session" and url = "https://XXXXXXX/api/session"
-  - graphql: optional argument to define the endpoint to do your query.
+  - `graphql`: optional argument to define the endpoint to do your query.
     By default, graphql = "graphql" and url = "https://XXXXXXX/api/graphql"
-  - verbose: True/False to enable/disable the verbose mode
-  - insecure: True/False to verify SSL certificate
-  - manage_token: True by default, if manage_token is False, then it disable 
+  - `verbose`: True/False to enable/disable the verbose mode
+  - `insecure`: True/False to verify SSL certificate
+  - `manage_token`: True by default, if manage_token is False, then it disable 
     token management and the token lifecycle will be manage by another process 
     according to your GraphQL API (documentation is your best friend). This 
     option is confirmed in the log:
-```
+```shell
 2023-02-07T09:39:25+0100 - GraphClient - INFO - Token: ** KEEP THE CURRENT ACCESS TOKEN BY OPT. **
 ```
 
@@ -117,6 +120,8 @@ Use case: multiple scripts use the same token, and you want a simple script
 to renew the token.
 All scripts will use the option "manage_token=False" during GraphClient
 instantiation and one script will be called to force the token renew:
+
+`refresh_token.py`
 ```python
 if __name__ == "__main__":
     # manage args
@@ -124,12 +129,12 @@ if __name__ == "__main__":
 
     try:
         my_obj = GraphClient(
-            json_keyfile=args.json_keyfile,
-            insecure=args.insecure,
-            verbose=args.verbose,
-            manage_token=False)
+            json_keyfile=args.json_keyfile,  # json keyfile (credentials)
+            insecure=args.insecure,          # True/False: If True, check SSL certificat
+            verbose=args.verbose,            # True/False: If True, show Request debug messages
+            manage_token=False)              # True/False: If False, disable automatic token management
 
-        my_obj.renew_token()
+        my_obj.renew_token()                 # Force token refresh
 
     except Exception:
         sys.exit(ExitStatus.EX_KO)
