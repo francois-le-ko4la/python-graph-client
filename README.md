@@ -1,8 +1,6 @@
 <p align="center">
   <img src="https://forthebadge.com/images/badges/made-with-python.svg" height="30" />
-  <img src="https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black" height="30" />
-  <img src="https://img.shields.io/badge/mac%20os-000000?style=for-the-badge&logo=apple&logoColor=white" height="30" />
-  <img src="https://img.shields.io/badge/Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white" height="30" />
+  <img src="https://img.shields.io/badge/Work_on-Linux_MACOS_Windows-0071C5?style=for-the-badge&logoColor=white" height="30" />
   <br />
   <img src="https://img.shields.io/github/v/release/francois-le-ko4la/python-graph-client?display_name=tag" />
   <img src="https://img.shields.io/badge/python-3.7%2B-blue" />
