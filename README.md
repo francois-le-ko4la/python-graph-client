@@ -1,17 +1,18 @@
+<p align="center">
+  <img src="https://forthebadge.com/images/badges/made-with-python.svg" height="30" />
+  <img src="https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black" height="30" />
+  <img src="https://img.shields.io/badge/mac%20os-000000?style=for-the-badge&logo=apple&logoColor=white" height="30" />
+  <img src="https://img.shields.io/badge/Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white" height="30" />
+  <br />
+  <img src="https://img.shields.io/github/v/release/francois-le-ko4la/python-graph-client?display_name=tag" />
+  <img src="https://img.shields.io/badge/python-3.7%2B-blue" />
+  <img src="https://img.shields.io/badge/PYCODESTYLE-PASSING-green" />
+  <img src="https://img.shields.io/badge/PYLINT-PASSING-green" />
+  <img src="https://img.shields.io/badge/MYPY-PASSING-green" />
+  <img src="https://img.shields.io/github/license/francois-le-ko4la/python-graph-client" />
+</p>
+
 # Python-Graph-Client:
-![](https://img.shields.io/badge/Python-DC322F?style=for-the-badge&logo=python&logoColor=white)
-![](https://img.shields.io/badge/graphql-E10098?style=for-the-badge&logo=graphql&logoColor=white)
-![](https://img.shields.io/badge/Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white)
-![](https://img.shields.io/badge/mac%20os-000000?style=for-the-badge&logo=apple&logoColor=white)
-![](https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black)
-<br />
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/francois-le-ko4la/python-graph-client?display_name=tag)
-![Last python](https://img.shields.io/badge/python-3.7%2B-blue)
-![Last test pycodestyle](https://img.shields.io/badge/PYCODESTYLE-PASSING-green)
-![Last test pylint](https://img.shields.io/badge/PYLINT-PASSING-green)
-![Last test mypy](https://img.shields.io/badge/MYPY-PASSING-green)
-
-
 ## Why?:
 
 Developing a Python package to connect to a GraphQL API has several benefits:
