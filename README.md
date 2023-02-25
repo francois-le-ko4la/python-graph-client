@@ -1,8 +1,16 @@
 # Python-Graph-Client:
-[![badge](https://forthebadge.com/images/badges/made-with-python.svg)]()
-![](./doc/pycodestyle-passing.svg)
-![](./doc/pylint-passing.svg)
-![](./doc/mypy-passing.svg)
+![](https://img.shields.io/badge/Python-DC322F?style=for-the-badge&logo=python&logoColor=white)
+![](https://img.shields.io/badge/graphql-E10098?style=for-the-badge&logo=graphql&logoColor=white)
+![](https://img.shields.io/badge/Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white)
+![](https://img.shields.io/badge/mac%20os-000000?style=for-the-badge&logo=apple&logoColor=white)
+![](https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black)
+<br />
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/francois-le-ko4la/python-graph-client?display_name=tag)
+![Last python](https://img.shields.io/badge/python-3.7%2B-blue)
+![Last test pycodestyle](https://img.shields.io/badge/PYCODESTYLE-PASSING-green)
+![Last test pylint](https://img.shields.io/badge/PYLINT-PASSING-green)
+![Last test mypy](https://img.shields.io/badge/MYPY-PASSING-green)
+
 
 ## Why?:
 
