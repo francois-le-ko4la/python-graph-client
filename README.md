@@ -149,7 +149,26 @@ if __name__ == "__main__":
     sys.exit(ExitStatus.EX_OK)
 ```
 
-## Query
+# Query
+
+```python
+# start a session
+client = GraphClient(base_url="https://fruits-api.netlify.app",
+                     verbose=True)
+# build the query
+query = """query oneFruit {
+  fruit(id: 5) {
+    id
+    scientific_name
+    tree_name
+    fruit_name
+    family
+  }
+}
+"""
+# send the query / get the response
+response = client.query(my_query=query)
+```
 
 Below, we provide the full function definition to use it correctly:
 ```python
@@ -169,7 +188,8 @@ def query(self, my_query: str,
     """
 ```
 
-# Sample
+# Sample and error management
+We raise errors from request library. We should use a try/except to catch our exception in the main script.
 We provide a sample folder with all info.
 
 # Setup:
