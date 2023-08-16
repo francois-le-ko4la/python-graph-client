@@ -132,7 +132,7 @@ and use the same session for multiple script call.
 The token is store on the same folder than keyfile, and we keep it for 1h by 
 default.
 
-New with 1.7 : by default, if the token stored is invalid and manage_token=True
+New (0.1.7) : by default, if the token stored is invalid and manage_token=True
 it will refresh and recreate a new token file. 
 
 To cover multiple use cases we provide other mechanism:
@@ -168,7 +168,7 @@ if __name__ == "__main__":
     sys.exit(ExitStatus.EX_OK)
 ```
 
-## Disable the token file
+## Disable the token file (0.1.7)
 
 We can disable the token file to cover these use cases:
 - We launch a script with a frequency (1 per month) incompatible with the lifespan of a GraphQL token.
