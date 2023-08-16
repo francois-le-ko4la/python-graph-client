@@ -98,7 +98,8 @@ my_obj = GraphClient(
     verbose=args.verbose,            # True/False: If True, show Request debug messages
     session="mysession",             # session url: https://XXXXXXX/api/<session>
     graphql="mygraphql",             # GraphQL url: https://XXXXXXX/api/<graphql>
-    manage_token=False)              # True/False: If False, disable automatic token management
+    manage_token=False,              # True/False: If False, disable automatic token management
+    keep_token=False)                # True/False: If False, disable token file creation
 ```
 - Note:
   - `base url`: made with your json file -> "https://XXXXXXX/api"
@@ -108,23 +109,41 @@ my_obj = GraphClient(
     By default, graphql = "graphql" and url = "https://XXXXXXX/api/graphql"
   - `verbose`: True/False to enable/disable the verbose mode
   - `insecure`: True/False to verify SSL certificate
-  - `manage_token`: True by default, if manage_token is False, then it disable 
-    token management and the token lifecycle will be manage by another process 
-    according to your GraphQL API (documentation is your best friend). This 
-    option is confirmed in the log:
+  - `manage_token`: True by default if we define a json keyfile.
+    If manage_token is False, then it disable token management and the token
+    lifecycle will be manage by another process according to your GraphQL API
+    (documentation is your best friend). This option is confirmed in the log:
 ```shell
 2023-02-07T09:39:25+0100 - GraphClient - INFO - Token: ** KEEP THE CURRENT ACCESS TOKEN BY OPT. **
 ```
+  - `keep_token`: True by default if we define a json keyfile.
+    If keep_token is False, then the token is not write in the token file.
+    We must use my_obj.close_session() to terminate the GraphQL session.
+    If the script is regurarly launch (hourly) and token still valid between 2 calls then
+    you can store the token to reuse it and let the automatic token refresh each hour.
+    If the script is used 1 time per month, then dont store the token and close the session.
+
 
 # Token
 ## Description
+
+By default, we generate a token file to avoid multiple token generation
+and use the same session for multiple script call.
 The token is store on the same folder than keyfile, and we keep it for 1h by 
 default.
 
+New with 1.7 : by default, if the token stored is invalid and manage_token=True
+it will refresh and recreate a new token file. 
+
+To cover multiple use cases we provide other mechanism:
+- token renew
+- disable the token file
+
 ## Token renew
+By default, token is renew by default automatically
 We can force the token renew in the script using renew_token() function.
-Use case: multiple scripts use the same token, and you want a simple script 
-to renew the token.
+Use case: multiple scripts use the same token stored on disk, and you want
+a simple script to renew the token.
 All scripts will use the option "manage_token=False" during GraphClient
 instantiation and one script will be called to force the token renew:
 
@@ -148,6 +167,42 @@ if __name__ == "__main__":
 
     sys.exit(ExitStatus.EX_OK)
 ```
+
+## Disable the token file
+
+We can disable the token file to cover these use cases:
+- We launch a script with a frequency (1 per month) incompatible with the lifespan of a GraphQL token.
+- We prefer to close the session after the last query in the script
+
+`script.py`
+```python
+if __name__ == "__main__":
+    # manage args
+    args = get_argparser().parse_args()
+
+    try:
+        my_obj = GraphClient(
+            json_keyfile=args.json_keyfile,  # json keyfile (credentials)
+            insecure=args.insecure,          # True/False: If True, check SSL certificat
+            verbose=args.verbose,            # True/False: If True, show Request debug messages
+            keep_token=False)                # True/False: If False, disable token file creation
+
+        query = """
+        ...
+        """
+
+        my_obj.close_session()               # Close the GraphQL Session
+
+    except Exception:
+        sys.exit(ExitStatus.EX_KO)
+
+    sys.exit(ExitStatus.EX_OK)
+```
+
+Note:
+By default, we close the current GraphQL session before the automatic renew.
+When we disable the token file the session MUST be closed with the
+close_session() function.
 
 # Query
 
@@ -223,6 +278,7 @@ Python 3.7+
 - 0.1.5: improve logging, simplify the code, clean constants.
 - 0.1.6: add anonymous connection, add raise_for_status() to raise a message 
   if the query status >= 400.
+- 0.1.7: add keep_token option, better automatic token creation
 
 # License
 

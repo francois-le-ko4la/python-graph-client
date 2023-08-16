@@ -63,17 +63,20 @@ class Message(Enum):
     KEYFILE_INFO: str = "Key file: %s"
     TOKEN_FOUND: str = "Token file: %s"
     TOKEN_GET: str = "Token: Use the current access token."
-    TOKEN_DEL: str = "Token: Close your session and delete the token file."
+    TOKEN_DEL: str = "Token: Close your session."
     TOKEN_TIMESTAMP: str = "Current access token timestamp: %s"
     TOKEN_WRITE: str = "Token: Write the new access token."
     TOKEN_RENEW: str = "Token: ** GET A NEW ACCESS TOKEN - REQUESTED. **"
     TOKEN_KEEP_OPT: str = "Token: ** KEEP THE CURRENT ACCESS TOKEN BY OPT. **"
     TOKEN_KEEP: str = "Token: Keep the current access token."
     TOKEN_OLD: str = "Token: Refresh the access token is required."
+    TOKEN_BAD: str = "Token: Access token or session is not valid."
+    TOKEN_DONT_KEEP: str = "Token: new session is open but token is not kept."
     BASE_URL: str = "Base url: %s"
     VERBOSE_MODE: str = "Enable verbose mode."
     VERSION: str = "graphqlclient version: %s"
     PYT_VERSION: str = "Python environment: %s"
+    CLOSE_SESSION_ERR: str = "close_session() is used but not applicable."
 
 
 def http_patch_log(*args: Any) -> None:
@@ -159,6 +162,7 @@ class Options(NamedTuple):
     session: str
     graphql: str
     manage_token: bool
+    keep_token: bool
     verbose: bool
 
 
@@ -173,15 +177,22 @@ class GraphClient:
             - session (str): endpoint to manage session
             - graphql (str): endpoint to push our query
             - manage_token (bool): Enable/disable token refresh
+                True by default if json_keyfile is defined (authentication)
+                Else, False by default (anonymous)
+            - keep_token (bool): Enable/disable token file creation
+                True by default if json_keyfile is defined (authentication)
+                A file is created to store the token and keep the connection
+                Else, False by default (anonymous)
             - base_url (str): init the base url (anonymous mode)
             - verbose (bool): verbose mode
 
     Examples:
         Anonymous connection to "https://fruits-api.netlify.app":
-        >>> client = GraphClient(base_url="https://fruits-api.netlify.app")
-        >>> my_query = "query oneFruit {fruit(id: 1) {fruit_name}}"
+        >>> graphql_target = "https://spacex-production.up.railway.app/"
+        >>> client = GraphClient(base_url=graphql_target)
+        >>> my_query = "query Exmpl {company {ceo}  roadster {apoapsis_au}}"
         >>> client.query(my_query=my_query)
-        {'data': {'fruit': {'fruit_name': 'Manzana'}}}
+        {'data': {'company': {'ceo': 'Elon Musk'}, ...
 
     """
 
@@ -200,6 +211,7 @@ class GraphClient:
             session=kwargs.get('session', 'session'),
             graphql=kwargs.get('graphql', 'graphql'),
             manage_token=kwargs.get('manage_token', bool(json_keyfile)),
+            keep_token=kwargs.get('keep_token', bool(json_keyfile)),
             verbose=kwargs.get('verbose', False))
 
         if self.__options.verbose:
@@ -243,7 +255,7 @@ class GraphClient:
             return False
         # log the token filename and read it.
         logger.info(Message.TOKEN_FOUND.value, self.__files.token)
-        self.__token = self.__files.token.read_text(Constants.ENCODING.value)
+        self.__token = str. strip(self.__files.token.read_text(Constants.ENCODING.value))
         # get the timestamp
         timestamp = os.path.getmtime(self.__files.token)
         token_timestamp = datetime.datetime.fromtimestamp(timestamp)
@@ -254,7 +266,7 @@ class GraphClient:
                 and token_timestamp < datetime.datetime.today() -
                 datetime.timedelta(hours=Constants.TOKEN_LIFESPAN.value)):
             logger.info(Message.TOKEN_OLD.value)
-            self.__delete_token()
+            self.__close_session()
             return False
         if self.__options.manage_token:
             # keep the token according to the timestamp:
@@ -298,19 +310,33 @@ class GraphClient:
 
         response_json = response.json()
         self.__token = response_json['access_token']
-        logger.info(Message.TOKEN_WRITE.value)
-        self.__files.token.write_text(self.__token,
-                                      encoding=Constants.ENCODING.value)
+
+        if self.__options.keep_token:
+            logger.info(Message.TOKEN_WRITE.value)
+            self.__files.token.write_text(
+                self.__token,
+                encoding=Constants.ENCODING.value)
+        else:
+            logger.info(Message.TOKEN_DONT_KEEP.value)
 
     @check_exception
     def __manage_session(self) -> None:
         """Manage the GraphQL session."""
         # get info from the json keyfile
         self.__read_key_file()
-        if not self.__read_token_file():
+        if not self.__options.keep_token or not self.__read_token_file():
             self.__get_access_token_keyfile()
         # delete sensitive info in memory !
         self.__json_key = {}
+
+    @check_exception
+    def __close_session(self) -> None:
+        """Close the session and log errors."""
+        try:
+            self.__delete_token()
+        except Exception as e:
+            logger.error(e)
+            logger.error(Message.TOKEN_BAD.value)
 
     @check_exception
     def renew_token(self) -> None:
@@ -323,7 +349,7 @@ class GraphClient:
         """
         logger.info(Message.TOKEN_RENEW.value)
         self.__read_key_file()
-        self.__delete_token()
+        self.__close_session()
         self.__get_access_token_keyfile()
         # delete sensitive info !
         self.__json_key = {}
@@ -356,3 +382,12 @@ class GraphClient:
 
         response.raise_for_status()
         return response.json()
+
+    def close_session(self) -> None:
+        """Close the current session."""
+        if not self.__options.manage_token or self.__options.keep_token:
+            logger.error(Message.CLOSE_SESSION_ERR.value)
+            return
+        if not self.__options.keep_token:
+            logger.info(Message.TOKEN_DEL.value)
+            self.__close_session()
