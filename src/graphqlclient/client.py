@@ -255,7 +255,8 @@ class GraphClient:
             return False
         # log the token filename and read it.
         logger.info(Message.TOKEN_FOUND.value, self.__files.token)
-        self.__token = str. strip(self.__files.token.read_text(Constants.ENCODING.value))
+        self.__token = str. strip(
+            self.__files.token.read_text(Constants.ENCODING.value))
         # get the timestamp
         timestamp = os.path.getmtime(self.__files.token)
         token_timestamp = datetime.datetime.fromtimestamp(timestamp)
@@ -324,7 +325,9 @@ class GraphClient:
         """Manage the GraphQL session."""
         # get info from the json keyfile
         self.__read_key_file()
-        if not self.__options.keep_token or not self.__read_token_file():
+        if (self.__options.manage_token
+            and (not self.__options.keep_token
+                 or not self.__read_token_file())):
             self.__get_access_token_keyfile()
         # delete sensitive info in memory !
         self.__json_key = {}
@@ -334,8 +337,8 @@ class GraphClient:
         """Close the session and log errors."""
         try:
             self.__delete_token()
-        except Exception as e:
-            logger.error(e)
+        except Exception as current_exception:  # pylint: disable=broad-except
+            logger.error(current_exception)
             logger.error(Message.TOKEN_BAD.value)
 
     @check_exception
